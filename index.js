@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3400;
 const app = (0, express_1.default)();
 dotenv_1.default.config();
 app.use((0, cors_1.default)({
-    origin: ['https://ashecone.github.io', 'https://ashecone.github.io/expense-tracker'],
+    origin: 'https://ashecone.github.io',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
