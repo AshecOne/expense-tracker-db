@@ -1,5 +1,3 @@
-import mysql from 'mysql2';
-
 const localConfig = {
   host: process.env.DB_HOST,
   user: process.env.DB_USER,

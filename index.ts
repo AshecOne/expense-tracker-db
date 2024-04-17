@@ -7,7 +7,9 @@ const PORT: number | string = process.env.PORT || 3400;
 const app: Application = express();
 
 dotenv.config();
-app.use(cors());
+app.use(cors({
+  origin: 'https://ashecone.github.io'
+}));
 app.use(express.json());
 app.use("/users", userRouter);
 
