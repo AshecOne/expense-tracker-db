@@ -10,7 +10,8 @@ dotenv.config();
 app.use(cors({
   origin: 'https://ashecone.github.io/expense-tracker',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
 app.use(express.json());
 app.use("/users", userRouter);
