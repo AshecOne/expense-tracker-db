@@ -1,0 +1,26 @@
+node_modules/
+package-lock.json
+
+*.log
+*.pid
+*.seed
+
+*.swp
+.DS_Store
+.idea/
+
+/dist
+/build
+/.pnp
+.pnp.js
+
+.env
+*.env.local
+
+# Konfigurasi keamanan
+*.pem
+*.cert
+
+/pre_mini_challenge/.next
+/pre_mini_challenge/node_modules
+
