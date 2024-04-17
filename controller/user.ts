@@ -53,8 +53,8 @@ export const signUp = async (req: Request, res: Response) => {
 
     pool.query(query, values, (err, result: ResultSetHeader) => {
       if (err) {
-        console.error("Error inserting user into the database:", err);
-        return res.status(500).send({ message: "Internal server error, could not insert user." });
+        console.error("Database query error:", err.message); // Log the specific error message
+        return res.status(500).send({ message: "Internal Server Error: Unable to insert user.", error: err.message });
       }
       console.log("User created successfully:", { id: result.insertId, name, email });
       return res.status(201).send({

@@ -58,8 +58,8 @@ const signUp = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         console.log("With values:", [name, email, "HASHED_PASSWORD"]);
         pool.query(query, values, (err, result) => {
             if (err) {
-                console.error("Error inserting user into the database:", err);
-                return res.status(500).send({ message: "Internal server error, could not insert user." });
+                console.error("Database query error:", err.message); // Log the specific error message
+                return res.status(500).send({ message: "Internal Server Error: Unable to insert user.", error: err.message });
             }
             console.log("User created successfully:", { id: result.insertId, name, email });
             return res.status(201).send({
