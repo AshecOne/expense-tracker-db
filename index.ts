@@ -8,11 +8,13 @@ const app: Application = express();
 
 dotenv.config();
 app.use(cors({
-  origin: 'https://ashecone.github.io'
+  origin: 'https://ashecone.github.io/expense-tracker'
 }));
 app.use(express.json());
 app.use("/users", userRouter);
-
+app.get('/', (req, res) => {
+  res.send('Server is running');
+});
 app.listen(PORT, () => {
   console.log(`API is running on port ${PORT}`);
 });
