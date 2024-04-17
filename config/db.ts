@@ -1,10 +1,12 @@
-import mysql from "mysql2";
+import mysql from 'mysql2';
 
-const pool = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: 'Ellss010599!',
-    database: 'money_tracker',
-});
+const localConfig = {
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+};
 
-export default pool;
+const herokuConfig = process.env.JAWSDB_URL;
+
+export { localConfig, herokuConfig };

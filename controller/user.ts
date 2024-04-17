@@ -1,45 +1,48 @@
 import { Request, Response } from "express";
-import db from "../config/db";
+import mysql from "mysql2";
+import { localConfig, herokuConfig } from "../config/db";
 import bcrypt from "bcrypt";
 import { ResultSetHeader, FieldPacket, OkPacket, RowDataPacket } from "mysql2";
+
+const pool =
+  process.env.NODE_ENV === "production"
+    ? mysql.createPool(herokuConfig!)
+    : mysql.createPool(localConfig);
 
 // Get user's data
 export const getUsers = (req: Request, res: Response) => {
   let query = "SELECT * FROM users";
-
   if (Object.keys(req.query).length) {
     const filter = Object.keys(req.query).map((val: string) => {
-      return `${val}=${db.escape(req.query[val])}`;
+      return `${val}=${mysql.escape(req.query[val])}`;
     });
     query += ` WHERE ${filter.join(" AND ")}`;
   }
-
   console.log("Received query parameters:", req.query);
   console.log("Constructed SQL query:", query);
 
-  db.query(query, (err, results) => {
+  pool.query(query, (err, results: RowDataPacket[]) => {
     if (err) {
       console.error("Error executing query:", err);
       return res.status(500).send(err);
     }
-
     console.log("Query results:", results);
     return res.status(200).send(results);
   });
 };
 
-
 // Input user's data
 export const signUp = async (req: Request, res: Response) => {
   const { name, email, password } = req.body;
-
   console.log("Received sign up request:", { name, email, password: "HIDDEN" });
 
   if (!name.trim() || !email.trim() || !password.trim()) {
-    console.log("Validation failed: Name, email, and password cannot be empty.");
-    return res.status(400).send({
-      message: "Name, email, and password cannot be empty.",
-    });
+    console.log(
+      "Validation failed: Name, email, and password cannot be empty."
+    );
+    return res
+      .status(400)
+      .send({ message: "Name, email, and password cannot be empty." });
   }
 
   try {
@@ -49,24 +52,22 @@ export const signUp = async (req: Request, res: Response) => {
 
     const query = "INSERT INTO users (name, email, password) VALUES (?, ?, ?)";
     const values = [name, email, hashedPassword];
-
     console.log("Executing database insert query:", query);
     console.log("With values:", [name, email, "HASHED_PASSWORD"]);
 
-    db.query(query, values, (err, result: ResultSetHeader) => {
+    pool.query(query, values, (err, result: ResultSetHeader) => {
       if (err) {
         console.error("Error inserting user into the database:", err);
         return res.status(500).send({ message: "Internal server error." });
       }
-
-      console.log("User created successfully:", { id: result.insertId, name, email });
+      console.log("User created successfully:", {
+        id: result.insertId,
+        name,
+        email,
+      });
       return res.status(201).send({
         message: "User created successfully.",
-        user: {
-          id: result.insertId,
-          name,
-          email,
-        },
+        user: { id: result.insertId, name, email },
       });
     });
   } catch (error) {
@@ -75,24 +76,22 @@ export const signUp = async (req: Request, res: Response) => {
   }
 };
 
-
 // Login user
 export const signIn = (req: Request, res: Response) => {
   const { email, password } = req.body;
-
   console.log("Received sign in request for email:", email);
 
   if (!email.trim() || !password.trim()) {
     console.log("Validation failed: Email and password are required.");
-    return res.status(400).send({
-      message: "Email and password are required.",
-    });
+    return res
+      .status(400)
+      .send({ message: "Email and password are required." });
   }
 
   const query = "SELECT * FROM users WHERE email = ?";
   const values = [email];
 
-  db.query(query, values, async (err, results: RowDataPacket[]) => {
+  pool.query(query, values, async (err, results: RowDataPacket[]) => {
     if (err) {
       console.error("Error querying database for user:", err);
       return res.status(500).send({ message: "Internal server error." });
@@ -114,13 +113,12 @@ export const signIn = (req: Request, res: Response) => {
         return res.status(401).send({ message: "Invalid email or password." });
       }
 
-      console.log("User authenticated successfully:", { id: user.id_user, name: user.name });
+      console.log("User authenticated successfully:", {
+        id: user.id_user,
+        name: user.name,
+      });
       return res.status(200).send({
-        user: {
-          id: user.id_user,
-          name: user.name,
-          email: user.email,
-        },
+        user: { id: user.id_user, name: user.name, email: user.email },
       });
     } catch (error) {
       console.error("Error comparing passwords:", error);
@@ -129,12 +127,11 @@ export const signIn = (req: Request, res: Response) => {
   });
 };
 
-
 // Display brief user's data (balance and transactions)
 export const getTransactions = (req: Request, res: Response) => {
   const { userId } = req.query;
   console.log(`Received request to get transactions for User ID: ${userId}`);
-  
+
   if (!userId) {
     console.log("Request failed: User ID is required.");
     return res.status(400).send({ message: "User ID is required." });
@@ -148,9 +145,14 @@ export const getTransactions = (req: Request, res: Response) => {
     ORDER BY transactions.date DESC;
   `;
 
-  db.query(query, [userId], (err, results: RowDataPacket[]) => {
+  pool.query(query, [userId], (err, results: RowDataPacket[]) => {
     if (err) {
-      console.error("Error querying transactions for User ID:", userId, "; Error:", err);
+      console.error(
+        "Error querying transactions for User ID:",
+        userId,
+        "; Error:",
+        err
+      );
       return res.status(500).send({ message: "Internal server error." });
     }
 
@@ -166,7 +168,9 @@ export const getTransactions = (req: Request, res: Response) => {
 
     const balance = totalIncome - totalExpense;
 
-    console.log(`Calculated Balance for User ID: ${userId}; Income: ${totalIncome}, Expense: ${totalExpense}, Balance: ${balance}`);
+    console.log(
+      `Calculated Balance for User ID: ${userId}; Income: ${totalIncome}, Expense: ${totalExpense}, Balance: ${balance}`
+    );
 
     res.status(200).send({
       balance,
@@ -175,23 +179,35 @@ export const getTransactions = (req: Request, res: Response) => {
   });
 };
 
-
 // Adding transaction data
 export const addTransaction = async (req: Request, res: Response) => {
   const { type, amount, description, category, date, userId } = req.body;
-  console.log("Adding new transaction with data:", { type, amount, description, category, date, userId });
+  console.log("Adding new transaction with data:", {
+    type,
+    amount,
+    description,
+    category,
+    date,
+    userId,
+  });
 
   try {
-    const getCategoryQuery = "SELECT id_category FROM categories WHERE name = ?";
-    const [categoryResults]: [RowDataPacket[], FieldPacket[]] = await db.promise().query(getCategoryQuery, [category]);
+    const getCategoryQuery =
+      "SELECT id_category FROM categories WHERE name = ?";
+    const [categoryResults]: [RowDataPacket[], FieldPacket[]] = await pool
+      .promise()
+      .query(getCategoryQuery, [category]);
 
     let categoryId;
 
     if (categoryResults.length === 0) {
       console.log(`Category '${category}' not found, creating new category.`);
       const categoryType = type === "income" ? "income" : "expense";
-      const createCategoryQuery = "INSERT INTO categories (name, type) VALUES (?, ?)";
-      const [createCategoryResult]: [OkPacket, FieldPacket[]] = await db.promise().query(createCategoryQuery, [category, categoryType]);
+      const createCategoryQuery =
+        "INSERT INTO categories (name, type) VALUES (?, ?)";
+      const [createCategoryResult]: [OkPacket, FieldPacket[]] = await pool
+        .promise()
+        .query(createCategoryQuery, [category, categoryType]);
       categoryId = createCategoryResult.insertId;
       console.log(`New category created with ID: ${categoryId}`);
     } else {
@@ -199,9 +215,10 @@ export const addTransaction = async (req: Request, res: Response) => {
       console.log(`Found existing category with ID: ${categoryId}`);
     }
 
-    const insertQuery = "INSERT INTO transactions (user_id, type, amount, description, category_id, date) VALUES (?, ?, ?, ?, ?, ?)";
+    const insertQuery =
+      "INSERT INTO transactions (user_id, type, amount, description, category_id, date) VALUES (?, ?, ?, ?, ?, ?)";
     const values = [userId, type, amount, description, categoryId, date];
-    await db.promise().query(insertQuery, values);
+    await pool.promise().query(insertQuery, values);
 
     console.log("Transaction added successfully.");
     res.status(201).send({
@@ -216,7 +233,13 @@ export const addTransaction = async (req: Request, res: Response) => {
 // Filtering data
 export const filterTransaction = (req: Request, res: Response) => {
   const { userId, startDate, endDate, type, category } = req.query;
-  console.log("Filtering transactions with params:", { userId, startDate, endDate, type, category });
+  console.log("Filtering transactions with params:", {
+    userId,
+    startDate,
+    endDate,
+    type,
+    category,
+  });
 
   let query = `
     SELECT 
@@ -252,7 +275,7 @@ export const filterTransaction = (req: Request, res: Response) => {
   console.log("Executing query:", query);
   console.log("With values:", values);
 
-  db.query(query, values, (err, results: RowDataPacket[]) => {
+  pool.query(query, values, (err, results: RowDataPacket[]) => {
     if (err) {
       console.error("Error filtering transactions:", err);
       return res.status(500).send({ message: "Internal server error." });
@@ -262,11 +285,14 @@ export const filterTransaction = (req: Request, res: Response) => {
   });
 };
 
-
 // Display all transactions data
 export const getAllTransactions = (req: Request, res: Response) => {
   const { userId, orderBy, order } = req.query;
-  console.log("Fetching all transactions with params:", { userId, orderBy, order });
+  console.log("Fetching all transactions with params:", {
+    userId,
+    orderBy,
+    order,
+  });
 
   const query = `
     SELECT 
@@ -283,17 +309,18 @@ export const getAllTransactions = (req: Request, res: Response) => {
 
   console.log("Executing query:", query);
 
-  db.query(query, [userId], (err, results: RowDataPacket[]) => {
+  pool.query(query, [userId], (err, results: RowDataPacket[]) => {
     if (err) {
       console.error("Error fetching transactions:", err);
-      return res.status(500).send({ message: "Internal server error.", error: err.message });
+      return res
+        .status(500)
+        .send({ message: "Internal server error.", error: err.message });
     }
 
     console.log(`Found ${results.length} transactions for user ID ${userId}`);
     res.status(200).send({ transactions: results });
   });
 };
-
 
 // Change user's profile
 export const updateProfile = (req: Request, res: Response) => {
@@ -307,10 +334,12 @@ export const updateProfile = (req: Request, res: Response) => {
 
   console.log("Executing query:", query, "Values:", values);
 
-  db.query(query, values, (err, result: ResultSetHeader) => {
+  pool.query(query, values, (err, result: ResultSetHeader) => {
     if (err) {
       console.error("Error updating user profile:", err);
-      return res.status(500).send({ message: "Internal server error.", error: err.message });
+      return res
+        .status(500)
+        .send({ message: "Internal server error.", error: err.message });
     }
 
     if (result.affectedRows === 0) {
@@ -321,15 +350,10 @@ export const updateProfile = (req: Request, res: Response) => {
     console.log("Profile updated successfully for user ID:", userId);
     res.status(200).send({
       message: "Profile updated successfully.",
-      user: {
-        id: userId,
-        name,
-        email,
-      },
+      user: { id: userId, name, email },
     });
   });
 };
-
 
 // Change user's password
 export const changePassword = async (req: Request, res: Response) => {
@@ -345,16 +369,25 @@ export const changePassword = async (req: Request, res: Response) => {
     const query = "UPDATE users SET password = ? WHERE id_user = ?";
     const values = [hashedPassword, userId];
 
-    console.log(`Executing query to change password:`, query, "Values:", values);
+    console.log(
+      `Executing query to change password:`,
+      query,
+      "Values:",
+      values
+    );
 
-    db.query(query, values, (err, result: ResultSetHeader) => {
+    pool.query(query, values, (err, result: ResultSetHeader) => {
       if (err) {
         console.error("Error changing password:", err);
-        return res.status(500).send({ message: "Internal server error.", error: err.message });
+        return res
+          .status(500)
+          .send({ message: "Internal server error.", error: err.message });
       }
 
       if (result.affectedRows === 0) {
-        console.log(`User not found or password unchanged for user ID: ${userId}`);
+        console.log(
+          `User not found or password unchanged for user ID: ${userId}`
+        );
         return res.status(404).send({ message: "User not found." });
       }
 
@@ -364,12 +397,12 @@ export const changePassword = async (req: Request, res: Response) => {
   } catch (error) {
     if (error instanceof Error) {
       console.error("Error hashing password:", error.message);
-      res.status(500).send({ message: "Internal server error.", error: error.message });
+      res
+        .status(500)
+        .send({ message: "Internal server error.", error: error.message });
     } else {
       console.error("Unexpected error:", error);
       res.status(500).send({ message: "Internal server error." });
     }
   }
 };
-
-
