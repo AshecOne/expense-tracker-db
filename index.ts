@@ -8,7 +8,7 @@ const app: Application = express();
 
 dotenv.config();
 app.use(cors({
-  origin: 'https://ashecone.github.io/expense-tracker',
+  origin: ['https://ashecone.github.io', 'https://ashecone.github.io/expense-tracker'],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
