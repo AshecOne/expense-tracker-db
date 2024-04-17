@@ -46,9 +46,7 @@ const signUp = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("Received sign up request:", { name, email, password: "HIDDEN" });
     if (!name.trim() || !email.trim() || !password.trim()) {
         console.log("Validation failed: Name, email, and password cannot be empty.");
-        return res
-            .status(400)
-            .send({ message: "Name, email, and password cannot be empty." });
+        return res.status(400).send({ message: "Name, email, and password cannot be empty." });
     }
     try {
         console.log("Attempting to hash password...");
@@ -61,22 +59,18 @@ const signUp = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         pool.query(query, values, (err, result) => {
             if (err) {
                 console.error("Error inserting user into the database:", err);
-                return res.status(500).send({ message: "Internal server error." });
+                return res.status(500).send({ message: "Internal server error, could not insert user." });
             }
-            console.log("User created successfully:", {
-                id: result.insertId,
-                name,
-                email,
-            });
+            console.log("User created successfully:", { id: result.insertId, name, email });
             return res.status(201).send({
                 message: "User created successfully.",
-                user: { id: result.insertId, name, email },
+                user: { id: result.insertId, name, email }
             });
         });
     }
     catch (error) {
-        console.error("Error hashing password:", error);
-        return res.status(500).send({ message: "Internal server error." });
+        console.error("Error during user signup:", error);
+        return res.status(500).send({ message: "Internal server error during signup." });
     }
 });
 exports.signUp = signUp;
