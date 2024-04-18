@@ -68,7 +68,6 @@ export const signUp = async (req: Request, res: Response) => {
   }
 };
 
-
 // Login user
 export const signIn = (req: Request, res: Response) => {
   const { email, password } = req.body;
@@ -220,6 +219,30 @@ export const addTransaction = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error inserting transaction:", error);
     res.status(500).send({ message: "Internal server error." });
+  }
+};
+
+// Delete transaction
+export const deleteTransaction = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  console.log(`Deleting transaction with ID: ${id}`);
+
+  try {
+    const query = "DELETE FROM transactions WHERE id_transaction = ?";
+    const [result]: [OkPacket, FieldPacket[]] = await pool
+      .promise()
+      .query(query, [id]);
+
+    if (result.affectedRows === 0) {
+      console.log(`Transaction with ID ${id} not found`);
+      return res.status(404).send({ message: "Transaction not found" });
+    }
+
+    console.log(`Transaction with ID ${id} deleted successfully`);
+    res.status(200).send({ message: "Transaction deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting transaction:", error);
+    res.status(500).send({ message: "Internal server error" });
   }
 };
 
