@@ -246,6 +246,27 @@ export const deleteTransaction = async (req: Request, res: Response) => {
   }
 };
 
+// Edit transaction
+export const updateTransaction = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { type, amount, description, category, date, userId } = req.body;
+
+  try {
+    const query = "UPDATE transactions SET type = ?, amount = ?, description = ?, category_id = (SELECT id_category FROM categories WHERE name = ?), date = ? WHERE id_transaction = ? AND user_id = ?";
+    const values = [type, amount, description, category, date, id, userId];
+    const [result]: [OkPacket, FieldPacket[]] = await pool.promise().query(query, values);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).send({ message: "Transaction not found or not authorized" });
+    }
+
+    res.status(200).send({ message: "Transaction updated successfully" });
+  } catch (error) {
+    console.error("Error updating transaction:", error);
+    res.status(500).send({ message: "Internal server error" });
+  }
+};
+
 // Filtering data
 export const filterTransaction = (req: Request, res: Response) => {
   const { userId, startDate, endDate, type, category } = req.query;

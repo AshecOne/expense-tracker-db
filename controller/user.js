@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.changePassword = exports.updateProfile = exports.getAllTransactions = exports.filterTransaction = exports.deleteTransaction = exports.addTransaction = exports.getTransactions = exports.signIn = exports.signUp = exports.getUsers = void 0;
+exports.changePassword = exports.updateProfile = exports.getAllTransactions = exports.filterTransaction = exports.updateTransaction = exports.deleteTransaction = exports.addTransaction = exports.getTransactions = exports.signIn = exports.signUp = exports.getUsers = void 0;
 const mysql2_1 = __importDefault(require("mysql2"));
 const db_1 = require("../config/db");
 const bcrypt_1 = __importDefault(require("bcrypt"));
@@ -221,6 +221,25 @@ const deleteTransaction = (req, res) => __awaiter(void 0, void 0, void 0, functi
     }
 });
 exports.deleteTransaction = deleteTransaction;
+// Edit transaction
+const updateTransaction = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = req.params;
+    const { type, amount, description, category, date, userId } = req.body;
+    try {
+        const query = "UPDATE transactions SET type = ?, amount = ?, description = ?, category_id = (SELECT id_category FROM categories WHERE name = ?), date = ? WHERE id_transaction = ? AND user_id = ?";
+        const values = [type, amount, description, category, date, id, userId];
+        const [result] = yield pool.promise().query(query, values);
+        if (result.affectedRows === 0) {
+            return res.status(404).send({ message: "Transaction not found or not authorized" });
+        }
+        res.status(200).send({ message: "Transaction updated successfully" });
+    }
+    catch (error) {
+        console.error("Error updating transaction:", error);
+        res.status(500).send({ message: "Internal server error" });
+    }
+});
+exports.updateTransaction = updateTransaction;
 // Filtering data
 const filterTransaction = (req, res) => {
     const { userId, startDate, endDate, type, category } = req.query;
