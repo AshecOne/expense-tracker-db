@@ -10,6 +10,7 @@ router.get("/", user_1.getUsers);
 router.post("/signup", user_1.signUp);
 router.post("/signin", user_1.signIn);
 router.get("/transactions", user_1.getTransactions);
+router.delete("/transactions/:id", user_1.deleteTransaction);
 router.put("/:id", user_1.updateProfile);
 router.put("/:id/change-password", user_1.changePassword);
 router.post("/transactions", user_1.addTransaction);

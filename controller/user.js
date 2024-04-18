@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.changePassword = exports.updateProfile = exports.getAllTransactions = exports.filterTransaction = exports.addTransaction = exports.getTransactions = exports.signIn = exports.signUp = exports.getUsers = void 0;
+exports.changePassword = exports.updateProfile = exports.getAllTransactions = exports.filterTransaction = exports.deleteTransaction = exports.addTransaction = exports.getTransactions = exports.signIn = exports.signUp = exports.getUsers = void 0;
 const mysql2_1 = __importDefault(require("mysql2"));
 const db_1 = require("../config/db");
 const bcrypt_1 = __importDefault(require("bcrypt"));
@@ -199,6 +199,28 @@ const addTransaction = (req, res) => __awaiter(void 0, void 0, void 0, function*
     }
 });
 exports.addTransaction = addTransaction;
+// Delete transaction
+const deleteTransaction = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = req.params;
+    console.log(`Deleting transaction with ID: ${id}`);
+    try {
+        const query = "DELETE FROM transactions WHERE id_transaction = ?";
+        const [result] = yield pool
+            .promise()
+            .query(query, [id]);
+        if (result.affectedRows === 0) {
+            console.log(`Transaction with ID ${id} not found`);
+            return res.status(404).send({ message: "Transaction not found" });
+        }
+        console.log(`Transaction with ID ${id} deleted successfully`);
+        res.status(200).send({ message: "Transaction deleted successfully" });
+    }
+    catch (error) {
+        console.error("Error deleting transaction:", error);
+        res.status(500).send({ message: "Internal server error" });
+    }
+});
+exports.deleteTransaction = deleteTransaction;
 // Filtering data
 const filterTransaction = (req, res) => {
     const { userId, startDate, endDate, type, category } = req.query;
