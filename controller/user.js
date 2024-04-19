@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.changePassword = exports.updateProfile = exports.getAllTransactions = exports.filterTransaction = exports.updateTransaction = exports.deleteTransaction = exports.addTransaction = exports.getTransactions = exports.signIn = exports.signUp = exports.getUsers = void 0;
+exports.changePassword = exports.updateProfile = exports.getAllTransactions = exports.filterTransaction = exports.updateTransaction = exports.getTransactionById = exports.deleteTransaction = exports.addTransaction = exports.getTransactions = exports.signIn = exports.signUp = exports.getUsers = void 0;
 const mysql2_1 = __importDefault(require("mysql2"));
 const db_1 = require("../config/db");
 const bcrypt_1 = __importDefault(require("bcrypt"));
@@ -221,6 +221,34 @@ const deleteTransaction = (req, res) => __awaiter(void 0, void 0, void 0, functi
     }
 });
 exports.deleteTransaction = deleteTransaction;
+// Get transaction by id
+const getTransactionById = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = req.params;
+    console.log(`Received request to get transaction with ID: ${id}`);
+    try {
+        const query = `
+      SELECT transactions.id_transaction, transactions.type, transactions.amount, transactions.description, transactions.date, categories.name AS category
+      FROM transactions
+      JOIN categories ON transactions.category_id = categories.id_category
+      WHERE transactions.id_transaction = ?;
+    `;
+        const [results] = yield pool
+            .promise()
+            .query(query, [id]);
+        if (results.length === 0) {
+            console.log(`Transaction with ID ${id} not found`);
+            return res.status(404).send({ message: "Transaction not found" });
+        }
+        const transaction = results[0];
+        console.log(`Successfully fetched transaction with ID: ${id}`);
+        res.status(200).send(transaction);
+    }
+    catch (error) {
+        console.error("Error fetching transaction:", error);
+        res.status(500).send({ message: "Internal server error" });
+    }
+});
+exports.getTransactionById = getTransactionById;
 // Edit transaction
 const updateTransaction = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;

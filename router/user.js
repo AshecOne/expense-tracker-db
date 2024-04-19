@@ -15,6 +15,7 @@ router.put("/transactions/:id", user_1.updateTransaction);
 router.put("/:id", user_1.updateProfile);
 router.put("/:id/change-password", user_1.changePassword);
 router.post("/transactions", user_1.addTransaction);
+router.get("/transactions/:id", user_1.getTransactionById);
 router.get('/transactions/filter', user_1.filterTransaction);
 router.get('/transactions', user_1.getAllTransactions);
 exports.default = router;

@@ -246,6 +246,36 @@ export const deleteTransaction = async (req: Request, res: Response) => {
   }
 };
 
+// Get transaction by id
+export const getTransactionById = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  console.log(`Received request to get transaction with ID: ${id}`);
+
+  try {
+    const query = `
+      SELECT transactions.id_transaction, transactions.type, transactions.amount, transactions.description, transactions.date, categories.name AS category
+      FROM transactions
+      JOIN categories ON transactions.category_id = categories.id_category
+      WHERE transactions.id_transaction = ?;
+    `;
+    const [results]: [RowDataPacket[], FieldPacket[]] = await pool
+      .promise()
+      .query(query, [id]);
+
+    if (results.length === 0) {
+      console.log(`Transaction with ID ${id} not found`);
+      return res.status(404).send({ message: "Transaction not found" });
+    }
+
+    const transaction = results[0];
+    console.log(`Successfully fetched transaction with ID: ${id}`);
+    res.status(200).send(transaction);
+  } catch (error) {
+    console.error("Error fetching transaction:", error);
+    res.status(500).send({ message: "Internal server error" });
+  }
+};
+
 // Edit transaction
 export const updateTransaction = async (req: Request, res: Response) => {
   const { id } = req.params;
