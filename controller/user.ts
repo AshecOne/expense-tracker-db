@@ -317,7 +317,7 @@ export const filterTransaction = (req: Request, res: Response) => {
   const values = [userId];
 
   if (startDate && endDate) {
-    query += " AND transactions.date BETWEEN ? AND ?";
+    query += " AND DATE(transactions.date) BETWEEN ? AND ?";
     values.push(startDate, endDate);
   }
 
