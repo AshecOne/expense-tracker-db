@@ -309,17 +309,11 @@ export const filterTransaction = (req: Request, res: Response) => {
   });
 
   let query = `
-    SELECT 
-      transactions.id_transaction,
-      transactions.type,
-      transactions.amount,
-      transactions.date,
-      categories.name AS category
+    SELECT transactions.id_transaction, transactions.type, transactions.amount, transactions.date, categories.name AS category
     FROM transactions
     JOIN categories ON transactions.category_id = categories.id_category
     WHERE transactions.user_id = ?
   `;
-
   const values = [userId];
 
   if (startDate && endDate) {
@@ -347,6 +341,7 @@ export const filterTransaction = (req: Request, res: Response) => {
       console.error("Error filtering transactions:", err);
       return res.status(500).send({ message: "Internal server error." });
     }
+
     console.log(`Found ${results.length} results`);
     res.status(200).send(results);
   });
