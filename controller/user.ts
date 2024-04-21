@@ -166,10 +166,22 @@ export const getLimitedTransactions = (req: Request, res: Response) => {
       return res.status(500).send({ message: "Internal server error.", error: err.message });
     }
 
+    const totalIncome = results
+      .filter(transaction => transaction.type === 'income')
+      .reduce((acc, transaction) => acc + transaction.amount, 0);
+
+    const totalExpense = results
+      .filter(transaction => transaction.type === 'expense')
+      .reduce((acc, transaction) => acc + transaction.amount, 0);
+
+    const balance = totalIncome - totalExpense;
+
     console.log(`Found ${results.length} limited transactions for user ID ${userId}`);
-    res.status(200).send({ transactions: results });
+    console.log(`Calculated Balance: ${balance}`);
+    res.status(200).send({ transactions: results, balance });
   });
 };
+
 
 // Adding transaction data
 export const addTransaction = async (req: Request, res: Response) => {
