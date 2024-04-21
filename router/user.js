@@ -16,6 +16,9 @@ router.put("/:id", user_1.updateProfile);
 router.put("/:id/change-password", user_1.changePassword);
 router.post("/transactions", user_1.addTransaction);
 router.get("/transactions/:id", user_1.getTransactionById);
-router.get('/transactions/filter', user_1.filterTransaction);
-router.get('/transactions', user_1.getAllTransactions);
+router.get("/transactions/filter", (req, res) => {
+    console.log("Received request to filter transactions");
+    (0, user_1.filterTransaction)(req, res);
+});
+router.get("/transactions", user_1.getAllTransactions);
 exports.default = router;

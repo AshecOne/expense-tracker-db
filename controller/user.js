@@ -19,6 +19,7 @@ const bcrypt_1 = __importDefault(require("bcrypt"));
 const pool = process.env.NODE_ENV === "production"
     ? mysql2_1.default.createPool(db_1.herokuConfig)
     : mysql2_1.default.createPool(db_1.localConfig);
+console.log("Database connection pool created");
 // Get user's data
 const getUsers = (req, res) => {
     let query = "SELECT * FROM users";
@@ -46,7 +47,9 @@ const signUp = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("Received sign up request:", { name, email, password: "HIDDEN" });
     if (!name.trim() || !email.trim() || !password.trim()) {
         console.log("Validation failed: Name, email, and password cannot be empty.");
-        return res.status(400).send({ message: "Name, email, and password cannot be empty." });
+        return res
+            .status(400)
+            .send({ message: "Name, email, and password cannot be empty." });
     }
     try {
         console.log("Attempting to hash password...");
@@ -59,18 +62,29 @@ const signUp = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         pool.query(query, values, (err, result) => {
             if (err) {
                 console.error("Database query error:", err.message); // Log the specific error message
-                return res.status(500).send({ message: "Internal Server Error: Unable to insert user.", error: err.message });
+                return res
+                    .status(500)
+                    .send({
+                    message: "Internal Server Error: Unable to insert user.",
+                    error: err.message,
+                });
             }
-            console.log("User created successfully:", { id: result.insertId, name, email });
+            console.log("User created successfully:", {
+                id: result.insertId,
+                name,
+                email,
+            });
             return res.status(201).send({
                 message: "User created successfully.",
-                user: { id: result.insertId, name, email }
+                user: { id: result.insertId, name, email },
             });
         });
     }
     catch (error) {
         console.error("Error during user signup:", error);
-        return res.status(500).send({ message: "Internal server error during signup." });
+        return res
+            .status(500)
+            .send({ message: "Internal server error during signup." });
     }
 });
 exports.signUp = signUp;
@@ -256,9 +270,13 @@ const updateTransaction = (req, res) => __awaiter(void 0, void 0, void 0, functi
     try {
         const query = "UPDATE transactions SET type = ?, amount = ?, description = ?, category_id = (SELECT id_category FROM categories WHERE name = ?), date = ? WHERE id_transaction = ? AND user_id = ?";
         const values = [type, amount, description, category, date, id, userId];
-        const [result] = yield pool.promise().query(query, values);
+        const [result] = yield pool
+            .promise()
+            .query(query, values);
         if (result.affectedRows === 0) {
-            return res.status(404).send({ message: "Transaction not found or not authorized" });
+            return res
+                .status(404)
+                .send({ message: "Transaction not found or not authorized" });
         }
         res.status(200).send({ message: "Transaction updated successfully" });
     }
@@ -306,6 +324,7 @@ const filterTransaction = (req, res) => {
             return res.status(500).send({ message: "Internal server error." });
         }
         console.log(`Found ${results.length} results`);
+        console.log("Filtered transactions:", results);
         res.status(200).send(results);
     });
 };
