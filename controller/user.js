@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.changePassword = exports.updateProfile = exports.getAllTransactions = exports.filterTransaction = exports.updateTransaction = exports.getTransactionById = exports.deleteTransaction = exports.addTransaction = exports.getTransactions = exports.signIn = exports.signUp = exports.getUsers = void 0;
+exports.changePassword = exports.updateProfile = exports.getAllTransactions = exports.filterTransaction = exports.updateTransaction = exports.getTransactionById = exports.deleteTransaction = exports.addTransaction = exports.getLimitedTransactions = exports.signIn = exports.signUp = exports.getUsers = void 0;
 const mysql2_1 = __importDefault(require("mysql2"));
 const db_1 = require("../config/db");
 const bcrypt_1 = __importDefault(require("bcrypt"));
@@ -133,41 +133,37 @@ const signIn = (req, res) => {
 };
 exports.signIn = signIn;
 // Display brief user's data (balance and transactions)
-const getTransactions = (req, res) => {
-    const { userId } = req.query;
-    console.log(`Received request to get transactions for User ID: ${userId}`);
-    if (!userId) {
-        console.log("Request failed: User ID is required.");
-        return res.status(400).send({ message: "User ID is required." });
-    }
+const getLimitedTransactions = (req, res) => {
+    const { userId, orderBy = 'date', order = 'desc' } = req.query;
+    console.log("Fetching limited transactions with params:", {
+        userId,
+        orderBy,
+        order,
+        limit: 5,
+    });
     const query = `
-    SELECT transactions.id_transaction, transactions.type, transactions.amount, transactions.date, categories.name AS category 
-    FROM transactions 
+    SELECT 
+      transactions.id_transaction,
+      transactions.type,
+      transactions.amount,
+      transactions.date,
+      categories.name AS category
+    FROM transactions
     JOIN categories ON transactions.category_id = categories.id_category
     WHERE transactions.user_id = ?
-    ORDER BY transactions.date DESC;
+    ORDER BY transactions.${orderBy} ${order}
+    LIMIT 5
   `;
     pool.query(query, [userId], (err, results) => {
         if (err) {
-            console.error("Error querying transactions for User ID:", userId, "; Error:", err);
-            return res.status(500).send({ message: "Internal server error." });
+            console.error("Error fetching transactions:", err);
+            return res.status(500).send({ message: "Internal server error.", error: err.message });
         }
-        console.log(`Successfully fetched transactions for User ID: ${userId}`);
-        const totalIncome = results
-            .filter((transaction) => transaction.type === "income")
-            .reduce((total, transaction) => total + Number(transaction.amount), 0);
-        const totalExpense = results
-            .filter((transaction) => transaction.type === "expense")
-            .reduce((total, transaction) => total + Number(transaction.amount), 0);
-        const balance = totalIncome - totalExpense;
-        console.log(`Calculated Balance for User ID: ${userId}; Income: ${totalIncome}, Expense: ${totalExpense}, Balance: ${balance}`);
-        res.status(200).send({
-            balance,
-            transactions: results,
-        });
+        console.log(`Found ${results.length} limited transactions for user ID ${userId}`);
+        res.status(200).send({ transactions: results });
     });
 };
-exports.getTransactions = getTransactions;
+exports.getLimitedTransactions = getLimitedTransactions;
 // Adding transaction data
 const addTransaction = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { type, amount, description, category, date, userId } = req.body;
@@ -343,12 +339,13 @@ const getAllTransactions = (req, res) => {
       transactions.type,
       transactions.amount,
       transactions.date,
+      transactions.description,
       categories.name AS category
     FROM transactions
     JOIN categories ON transactions.category_id = categories.id_category
     WHERE transactions.user_id = ?
     ORDER BY transactions.${orderBy} ${order}
-  `;
+`;
     console.log("Executing query:", query);
     pool.query(query, [userId], (err, results) => {
         if (err) {

@@ -3,7 +3,6 @@ import {
   getUsers,
   signUp,
   signIn,
-  getTransactions,
   updateProfile,
   changePassword,
   addTransaction,
@@ -12,6 +11,7 @@ import {
   deleteTransaction,
   updateTransaction,
   getTransactionById,
+  getLimitedTransactions,
 } from "../controller/user";
 
 const router = express.Router();
@@ -19,17 +19,14 @@ const router = express.Router();
 router.get("/", getUsers);
 router.post("/signup", signUp);
 router.post("/signin", signIn);
-router.get("/transactions", getTransactions);
+router.get("/transactions/filter", filterTransaction);
+router.get("/transactions", getLimitedTransactions);
+router.get("/transactions/all", getAllTransactions);
+router.post("/transactions", addTransaction);
+router.get("/transactions/:id", getTransactionById);
 router.delete("/transactions/:id", deleteTransaction);
 router.put("/transactions/:id", updateTransaction);
 router.put("/:id", updateProfile);
 router.put("/:id/change-password", changePassword);
-router.post("/transactions", addTransaction);
-router.get("/transactions/:id", getTransactionById);
-router.get("/transactions/filter", (req, res) => {
-  console.log("Received request to filter transactions");
-  filterTransaction(req, res);
-});
-router.get("/transactions", getAllTransactions);
 
 export default router;

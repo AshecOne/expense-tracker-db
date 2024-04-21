@@ -137,54 +137,37 @@ export const signIn = (req: Request, res: Response) => {
 };
 
 // Display brief user's data (balance and transactions)
-export const getTransactions = (req: Request, res: Response) => {
-  const { userId } = req.query;
-  console.log(`Received request to get transactions for User ID: ${userId}`);
-
-  if (!userId) {
-    console.log("Request failed: User ID is required.");
-    return res.status(400).send({ message: "User ID is required." });
-  }
+export const getLimitedTransactions = (req: Request, res: Response) => {
+  const { userId, orderBy = 'date', order = 'desc' } = req.query;
+  console.log("Fetching limited transactions with params:", {
+    userId,
+    orderBy,
+    order,
+    limit: 5,
+  });
 
   const query = `
-    SELECT transactions.id_transaction, transactions.type, transactions.amount, transactions.date, categories.name AS category 
-    FROM transactions 
+    SELECT 
+      transactions.id_transaction,
+      transactions.type,
+      transactions.amount,
+      transactions.date,
+      categories.name AS category
+    FROM transactions
     JOIN categories ON transactions.category_id = categories.id_category
     WHERE transactions.user_id = ?
-    ORDER BY transactions.date DESC;
+    ORDER BY transactions.${orderBy} ${order}
+    LIMIT 5
   `;
 
   pool.query(query, [userId], (err, results: RowDataPacket[]) => {
     if (err) {
-      console.error(
-        "Error querying transactions for User ID:",
-        userId,
-        "; Error:",
-        err
-      );
-      return res.status(500).send({ message: "Internal server error." });
+      console.error("Error fetching transactions:", err);
+      return res.status(500).send({ message: "Internal server error.", error: err.message });
     }
 
-    console.log(`Successfully fetched transactions for User ID: ${userId}`);
-
-    const totalIncome = results
-      .filter((transaction) => transaction.type === "income")
-      .reduce((total, transaction) => total + Number(transaction.amount), 0);
-
-    const totalExpense = results
-      .filter((transaction) => transaction.type === "expense")
-      .reduce((total, transaction) => total + Number(transaction.amount), 0);
-
-    const balance = totalIncome - totalExpense;
-
-    console.log(
-      `Calculated Balance for User ID: ${userId}; Income: ${totalIncome}, Expense: ${totalExpense}, Balance: ${balance}`
-    );
-
-    res.status(200).send({
-      balance,
-      transactions: results,
-    });
+    console.log(`Found ${results.length} limited transactions for user ID ${userId}`);
+    res.status(200).send({ transactions: results });
   });
 };
 
@@ -386,12 +369,13 @@ export const getAllTransactions = (req: Request, res: Response) => {
       transactions.type,
       transactions.amount,
       transactions.date,
+      transactions.description,
       categories.name AS category
     FROM transactions
     JOIN categories ON transactions.category_id = categories.id_category
     WHERE transactions.user_id = ?
     ORDER BY transactions.${orderBy} ${order}
-  `;
+`;
 
   console.log("Executing query:", query);
 
