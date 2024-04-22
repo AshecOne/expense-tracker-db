@@ -294,17 +294,28 @@ export const updateTransaction = async (req: Request, res: Response) => {
   const { type, amount, description, category, date, userId } = req.body;
 
   try {
-    const query =
-      "UPDATE transactions SET type = ?, amount = ?, description = ?, category_id = (SELECT id_category FROM categories WHERE name = ?), date = ? WHERE id_transaction = ? AND user_id = ?";
-    const values = [type, amount, description, category, date, id, userId];
-    const [result]: [OkPacket, FieldPacket[]] = await pool
-      .promise()
-      .query(query, values);
+    // Mengecek kategori yang ada atau membuat baru jika diperlukan
+    const getCategoryQuery = "SELECT id_category FROM categories WHERE name = ?";
+    const [categoryResults]: [RowDataPacket[], FieldPacket[]] = await pool.promise().query(getCategoryQuery, [category]);
+
+    let categoryId;
+
+    if (categoryResults.length === 0) {
+      // Jika kategori tidak ada, buat baru
+      const createCategoryQuery = "INSERT INTO categories (name, type) VALUES (?, ?)";
+      const [createCategoryResult]: [OkPacket, FieldPacket[]] = await pool.promise().query(createCategoryQuery, [category, type]);
+      categoryId = createCategoryResult.insertId;
+    } else {
+      categoryId = categoryResults[0].id_category;
+    }
+
+    // Update transaksi dengan kategori yang benar
+    const query = "UPDATE transactions SET type = ?, amount = ?, description = ?, category_id = ?, date = ? WHERE id_transaction = ? AND user_id = ?";
+    const values = [type, amount, description, categoryId, date, id, userId];
+    const [result]: [OkPacket, FieldPacket[]] = await pool.promise().query(query, values);
 
     if (result.affectedRows === 0) {
-      return res
-        .status(404)
-        .send({ message: "Transaction not found or not authorized" });
+      return res.status(404).send({ message: "Transaction not found or not authorized" });
     }
 
     res.status(200).send({ message: "Transaction updated successfully" });
@@ -313,6 +324,7 @@ export const updateTransaction = async (req: Request, res: Response) => {
     res.status(500).send({ message: "Internal server error" });
   }
 };
+
 
 // Filtering data
 export const filterTransaction = (req: Request, res: Response) => {
